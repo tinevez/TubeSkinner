@@ -2,137 +2,136 @@ package plugins.tinevez.tubeskinner;
 
 import java.awt.Color;
 import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
 
 import icy.image.IcyBufferedImage;
-import icy.roi.ROI;
 import icy.sequence.Sequence;
 import icy.type.DataType;
+import icy.type.collection.array.Array1DUtil;
 import plugins.kernel.roi.roi2d.ROI2DEllipse;
 import plugins.kernel.roi.roi2d.ROI2DPolyLine;
+import plugins.kernel.roi.roi3d.ROI3DArea;
 
 public class AortaTracker
 {
 
+	/**
+	 * The sequence in which the tube is. Must be laid out roughly along the Z
+	 * axis.
+	 */
 	private final Sequence sequence;
 
+	/**
+	 * The user provided ellipse contour of the tube on the first Z-slice.
+	 */
+	private final ROI2DEllipse ellipse;
+
+	/** Size of the crown to localize tube center. */
 	private final double thickness;
 
-	public AortaTracker( final Sequence sequence, final double thickness )
+	/** By how much can the tube center moves from z-slice to z-slice. */
+	private final int searchWindow;
+
+	/**
+	 * In what channel should we perform the segmentation step.
+	 */
+	private final int segmentationChannel = 1;
+
+	/**
+	 * Time-point currently processed.
+	 */
+	private final int timepoint = 0;
+
+	public AortaTracker( final Sequence sequence, final ROI2DEllipse ellipse, final double thickness, final int window )
 	{
 		this.sequence = sequence;
+		this.ellipse = ellipse;
 		this.thickness = thickness;
+		this.searchWindow = window;
 	}
 
-	public void run() {
+	public void run()
+	{
+		// Outer crown circle.
+		final ROI2DEllipse roiOut = new ROI2DEllipse(
+				ellipse.getBounds2D().getMinX() - thickness / 2,
+				ellipse.getBounds2D().getMinY() - thickness / 2,
+				ellipse.getBounds2D().getMaxX() + thickness / 2,
+				ellipse.getBounds2D().getMaxY() + thickness / 2 );
 
-		System.out.println("Aorta Analysis...");
-
-		// Check sources
-		if ( sequence == null )
-		{
-			System.out.println("A sequence is needed to use this plugin.");
-			return;
-		}
-
-		// clean of previous ROIs
-		for ( int i = sequence.getROIs().size() - 1; i >= 0; i-- )
-		{
-			final ROI roi = sequence.getROIs().get( i );
-			if ( roi.getName().contains("tmp") )
-			{
-				sequence.removeROI( roi );
-			}
-		}
-
-		// tracking.
-
-		System.out.println("Aorta Tracking...");
-
-		ROI2DEllipse roiOut = null;
-
-		try
-		{
-			roiOut = ( ROI2DEllipse ) sequence.getROI2Ds().get( 0 );
-		}catch( final Exception e )
-		{
-			System.err.println("You need an ROI Ellipse to start.");
-			return;
-		}
-
-		// create the inner ROI
+		// Inner crown circle.
 		final ROI2DEllipse roiIn = new ROI2DEllipse(
-				roiOut.getBounds2D().getMinX()+thickness,
-				roiOut.getBounds2D().getMinY()+thickness,
-				roiOut.getBounds2D().getMaxX()-thickness,
-				roiOut.getBounds2D().getMaxY()-thickness );
-
-		roiIn.setName("tmp inner at z=0");
-		roiIn.setColor( Color.orange );
-		roiIn.setZ( 0 );
-		roiOut.setZ( 0 );
-		sequence.addROI( roiIn );
+				roiOut.getBounds2D().getMinX() + thickness,
+				roiOut.getBounds2D().getMinY() + thickness,
+				roiOut.getBounds2D().getMaxX() - thickness,
+				roiOut.getBounds2D().getMaxY() - thickness );
 
 		ROI2DEllipse innerPrevious = roiIn;
 		ROI2DEllipse outerPrevious = roiOut;
 
 		final Sequence outWrap = new Sequence( "outWrap" );
-
 		final IcyBufferedImage unWrapImage = new IcyBufferedImage( 360, sequence.getSizeZ(), 1, DataType.DOUBLE );
 		outWrap.addImage( unWrapImage );
 
 		unWrapImage.beginUpdate();
 
+		final ROI3DArea skin = new ROI3DArea();
+		skin.setName( "tmp skin" );
+
+		final ROI3DArea tube = new ROI3DArea();
+		skin.setName( "tmp tube" );
+
 		for ( int z = 1; z < sequence.getSizeZ(); z++ )
 		{
-			System.out.println("Current Z: " + z );
+			// Current crown from previous Z-slice.
+			final ROI2DEllipse inner = ( ROI2DEllipse ) innerPrevious.getCopy();
+			final ROI2DEllipse outer = ( ROI2DEllipse ) outerPrevious.getCopy();
 
-			// roi to find in current Z
-			final ROI2DEllipse inner = (ROI2DEllipse) innerPrevious.getCopy();
-			final ROI2DEllipse outer = (ROI2DEllipse) outerPrevious.getCopy();
+			// Get pixel data as double (copy current slice).
+			final IcyBufferedImage image = sequence.getImage( timepoint, z );
+			final Object dataXY = image.getDataXY( segmentationChannel );
+			final double[] data = Array1DUtil.arrayToDoubleArray( dataXY, image.isSignedDataType() );
 
-			// shift fits.
-
-			final IcyBufferedImage image = sequence.getImage( 0, z );
-			final short[] data = image.getDataXYAsShort( 0 );
-
-			final int window = 5;
-			int currentMax = Integer.MIN_VALUE;
-
+			double currentMax = Integer.MIN_VALUE;
 			Point2D bestOffset = null;
-
-			for ( int xOffset = -window ; xOffset <= window ; xOffset ++ )
+			for ( int xOffset = -searchWindow; xOffset <= searchWindow; xOffset++ )
 			{
-				for ( int yOffset = -window ; yOffset <= window ; yOffset ++ )
+				for ( int yOffset = -searchWindow; yOffset <= searchWindow; yOffset++ )
 				{
-					int val = 0;
-					final Point2D center = new Point2D.Double ( outer.getBounds2D().getCenterX() , outer.getBounds().getCenterY() );
-					final double rayOuter = outer.getBounds2D().getWidth() /2;
-					final double rayInner = inner.getBounds2D().getWidth() /2;
+					double val = 0.;
+					final Point2D center = new Point2D.Double( outer.getBounds2D().getCenterX(), outer.getBounds().getCenterY() );
+					final double rayOuter = outer.getBounds2D().getWidth() / 2;
+					final double rayInner = inner.getBounds2D().getWidth() / 2;
 
-					for ( float angle = 0 ; angle < 2*3.14d ; angle +=0.1 )
+					/*
+					 * TODO We actually do not sum over the whole crown but
+					 * simply along a circle. Use ImgLib2 Iterators?
+					 * 
+					 * TODO Add bound checks.
+					 */
+
+					for ( float angle = 0; angle < 2 * 3.14d; angle += 0.1 )
 					{
-						final int xx = (int)( xOffset+center.getX() + Math.cos( angle ) * rayOuter );
-						final int yy = (int)( yOffset+center.getY() + Math.sin( angle ) * rayOuter );
-						val+= data[yy*image.getWidth()+xx] & 0xFFFF;
+						final int xx = ( int ) ( xOffset + center.getX() + Math.cos( angle ) * rayOuter );
+						final int yy = ( int ) ( yOffset + center.getY() + Math.sin( angle ) * rayOuter );
+						val += data[ yy * image.getWidth() + xx ];
 					}
 
-					for ( float angle = 0 ; angle < 2*3.14d ; angle +=0.1 )
+					for ( float angle = 0; angle < 2 * 3.14d; angle += 0.1 )
 					{
-						final int xx = (int)( xOffset+center.getX() + Math.cos( angle ) * rayInner );
-						final int yy = (int)( yOffset+center.getY() + Math.sin( angle ) * rayInner );
-						val-= data[yy*image.getWidth()+xx] & 0xFFFF;
+						final int xx = ( int ) ( xOffset + center.getX() + Math.cos( angle ) * rayInner );
+						final int yy = ( int ) ( yOffset + center.getY() + Math.sin( angle ) * rayInner );
+						val -= data[ yy * image.getWidth() + xx ];
 					}
 
 					if ( val > currentMax )
 					{
 						currentMax = val;
-						bestOffset = new Point2D.Double( xOffset , yOffset );
+						bestOffset = new Point2D.Double( xOffset, yOffset );
 					}
 
 				}
 			}
-
-			System.out.println( "Best Offset: " + bestOffset );
 
 			// shift roi.
 			inner.translate( bestOffset.getX(), bestOffset.getY() );
@@ -146,22 +145,29 @@ public class AortaTracker
 			inner.setName( "tmp inner " + z );
 			outer.setName( "tmp outer " + z );
 
-			inner.setColor( Color.orange );
-
-			sequence.addROI( inner );
-			sequence.addROI( outer );
+			final Rectangle2D in = inner.getBounds2D();
+			final Rectangle2D out = outer.getBounds2D();
+			final ROI2DEllipse tubeSection = new ROI2DEllipse(
+					( in.getMinX() + out.getMinX() ) / 2,
+					( in.getMinY() + out.getMinY() ) / 2,
+					( in.getMaxX() + out.getMaxX() ) / 2,
+					( in.getMaxY() + out.getMaxY() ) / 2 );
+			tube.setSlice( z, tubeSection, false );
 
 			innerPrevious = inner;
 			outerPrevious = outer;
 
-			// unwrap
+			/*
+			 * Read max value along the rays emerging from the crown center, for
+			 * all theta.
+			 */
 
-			ROI2DPolyLine maxFitROI = null ;
+			ROI2DPolyLine maxFitROI = null;
 
-			for ( int angle=0 ; angle < 360 ; angle++ )
+			for ( int angle = 0; angle < 360; angle++ )
 			{
-				final Point2D center = new Point2D.Double ( outer.getBounds2D().getCenterX() , outer.getBounds().getCenterY() );
-				final double rayOuter = outer.getBounds2D().getWidth() /2;
+				final Point2D center = new Point2D.Double( outer.getBounds2D().getCenterX(), outer.getBounds().getCenterY() );
+				final double rayOuter = outer.getBounds2D().getWidth() / 2;
 
 				// search for a max in a windowRay.
 
@@ -170,11 +176,12 @@ public class AortaTracker
 				double bestRay = 0;
 				double valMax = java.lang.Double.MIN_VALUE;
 
-				for ( double ray = rayOuter - windowRay ; ray < rayOuter + windowRay ; ray++ )
+				for ( double ray = rayOuter - windowRay; ray < rayOuter + windowRay; ray++ )
 				{
-					final int xx = (int)( center.getX() + Math.cos( Math.toRadians( angle ) ) * ray );
-					final int yy = (int)( center.getY() + Math.sin( Math.toRadians( angle ) ) * ray );
-					final double currentVal = data[yy*image.getWidth()+xx] & 0xFFFF;
+					final int xx = ( int ) ( center.getX() + Math.cos( Math.toRadians( angle ) ) * ray );
+					final int yy = ( int ) ( center.getY() + Math.sin( Math.toRadians( angle ) ) * ray );
+					// TODO Add bound checks.
+					final double currentVal = data[ yy * image.getWidth() + xx ];
 
 					if ( currentVal > valMax )
 					{
@@ -183,31 +190,34 @@ public class AortaTracker
 					}
 
 				}
+				/*
+				 * TODO Do not use theta for the X axis of the unwrapped image,
+				 * but instead the curvilinear coordinate along the contour.
+				 */
 				unWrapImage.setData( angle, z, 0, valMax );
 
-				// add point to roi fit
 
+				// Build polygon contour.
 				final Point2D point = new Point2D.Double(
 						center.getX() + Math.cos( Math.toRadians( angle ) ) * bestRay,
-						center.getY() + Math.sin( Math.toRadians( angle ) ) * bestRay
-						);
+						center.getY() + Math.sin( Math.toRadians( angle ) ) * bestRay );
 
 				if ( maxFitROI == null )
-				{
 					maxFitROI = new ROI2DPolyLine( point );
-				}else
-				{
-					maxFitROI.addNewPoint( point , false );
-				}
-
+				else
+					maxFitROI.addNewPoint( point, false );
 			}
 
+			// Add this Z-slice contour to the 3D ROI.
 			maxFitROI.setZ( z );
-			maxFitROI.setColor( Color.CYAN );
-			sequence.addROI( maxFitROI );
-			maxFitROI.setName( "tmp fit intensity " + z );
-
+			skin.setSlice( z, maxFitROI, false );
 		}
+
+		skin.setColor( Color.CYAN );
+		sequence.addROI( skin );
+
+		tube.setColor( Color.ORANGE );
+		sequence.addROI( tube );
 
 		unWrapImage.endUpdate();
 
