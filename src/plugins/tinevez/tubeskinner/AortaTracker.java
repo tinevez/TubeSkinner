@@ -2,7 +2,6 @@ package plugins.tinevez.tubeskinner;
 
 import java.awt.Color;
 import java.awt.geom.Point2D;
-import java.awt.geom.Rectangle2D;
 
 import icy.image.IcyBufferedImage;
 import icy.sequence.Sequence;
@@ -41,6 +40,12 @@ public class AortaTracker
 	 * Time-point currently processed.
 	 */
 	private final int timepoint = 0;
+
+
+	/**
+	 * Search window for the local max of intensity along a radius.
+	 */
+	private final int windowRay = 15;
 
 	public AortaTracker( final Sequence sequence, final ROI2DEllipse ellipse, final double thickness, final int window )
 	{
@@ -149,13 +154,14 @@ public class AortaTracker
 			inner.setName( "tmp inner " + z );
 			outer.setName( "tmp outer " + z );
 
-			final Rectangle2D in = inner.getBounds2D();
-			final Rectangle2D out = outer.getBounds2D();
-			final ROI2DEllipse tubeSection = new ROI2DEllipse(
-					( in.getMinX() + out.getMinX() ) / 2,
-					( in.getMinY() + out.getMinY() ) / 2,
-					( in.getMaxX() + out.getMaxX() ) / 2,
-					( in.getMaxY() + out.getMaxY() ) / 2 );
+			final ROI2DEllipse tubeSection = outer;
+//			final Rectangle2D in = inner.getBounds2D();
+//			final Rectangle2D out = outer.getBounds2D();
+//			new ROI2DEllipse(
+//					( in.getMinX() + out.getMinX() ) / 2,
+//					( in.getMinY() + out.getMinY() ) / 2,
+//					( in.getMaxX() + out.getMaxX() ) / 2,
+//					( in.getMaxY() + out.getMaxY() ) / 2 );
 			tube.setSlice( z, tubeSection, false );
 
 			innerPrevious = inner;
@@ -168,17 +174,15 @@ public class AortaTracker
 
 			ROI2DPolyLine maxFitROI = null;
 
+			double previousBestRay = -1.;
 			for ( int angle = 0; angle < 360; angle++ )
 			{
 				final Point2D center = new Point2D.Double( outer.getBounds2D().getCenterX(), outer.getBounds().getCenterY() );
 				final double rayOuter = outer.getBounds2D().getWidth() / 2;
 
-				// search for a max in a windowRay.
-
-				final int windowRay = 15;
 
 				double bestRay = 0;
-				double valMax = java.lang.Double.MIN_VALUE;
+				double valMax = java.lang.Double.NEGATIVE_INFINITY;
 
 				for ( double ray = rayOuter - windowRay; ray < rayOuter + windowRay; ray++ )
 				{
@@ -188,7 +192,14 @@ public class AortaTracker
 					if ( xx < 0 || yy < 0 || xx >= width || yy >= height )
 						continue;
 					
-					final double currentVal = data[ yy * image.getWidth() + xx ];
+
+					// Weight value by its distance to the previous max found.
+					double currentVal = data[ yy * image.getWidth() + xx ];
+					if ( previousBestRay > 0 )
+					{
+						final double alpha = ( ray - previousBestRay ) / windowRay;
+						currentVal = currentVal / ( 1 + alpha * alpha );
+					}
 
 					if ( currentVal > valMax )
 					{
@@ -197,6 +208,10 @@ public class AortaTracker
 					}
 
 				}
+
+				if ( previousBestRay < 0 )
+					previousBestRay = bestRay;
+
 				/*
 				 * TODO Do not use theta for the X axis of the unwrapped image,
 				 * but instead the curvilinear coordinate along the contour.
