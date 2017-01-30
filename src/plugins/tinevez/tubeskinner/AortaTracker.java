@@ -35,7 +35,7 @@ public class AortaTracker
 	/**
 	 * In what channel should we perform the segmentation step.
 	 */
-	private final int segmentationChannel = 1;
+	private final int segmentationChannel = 0;
 
 	/**
 	 * Time-point currently processed.
@@ -53,11 +53,12 @@ public class AortaTracker
 	public void run()
 	{
 		// Outer crown circle.
-		final ROI2DEllipse roiOut = new ROI2DEllipse(
-				ellipse.getBounds2D().getMinX() - thickness / 2,
-				ellipse.getBounds2D().getMinY() - thickness / 2,
-				ellipse.getBounds2D().getMaxX() + thickness / 2,
-				ellipse.getBounds2D().getMaxY() + thickness / 2 );
+		final ROI2DEllipse roiOut = ellipse;
+//		new ROI2DEllipse(
+//				ellipse.getBounds2D().getMinX() - thickness / 2,
+//				ellipse.getBounds2D().getMinY() - thickness / 2,
+//				ellipse.getBounds2D().getMaxX() + thickness / 2,
+//				ellipse.getBounds2D().getMaxY() + thickness / 2 );
 
 		// Inner crown circle.
 		final ROI2DEllipse roiIn = new ROI2DEllipse(
@@ -73,13 +74,16 @@ public class AortaTracker
 		final IcyBufferedImage unWrapImage = new IcyBufferedImage( 360, sequence.getSizeZ(), 1, DataType.DOUBLE );
 		outWrap.addImage( unWrapImage );
 
+		final int width = sequence.getWidth();
+		final int height = sequence.getHeight();
+		
 		unWrapImage.beginUpdate();
 
 		final ROI3DArea skin = new ROI3DArea();
 		skin.setName( "tmp skin" );
 
 		final ROI3DArea tube = new ROI3DArea();
-		skin.setName( "tmp tube" );
+		tube.setName( "tmp tube" );
 
 		for ( int z = 1; z < sequence.getSizeZ(); z++ )
 		{
@@ -180,7 +184,10 @@ public class AortaTracker
 				{
 					final int xx = ( int ) ( center.getX() + Math.cos( Math.toRadians( angle ) ) * ray );
 					final int yy = ( int ) ( center.getY() + Math.sin( Math.toRadians( angle ) ) * ray );
-					// TODO Add bound checks.
+
+					if ( xx < 0 || yy < 0 || xx >= width || yy >= height )
+						continue;
+					
 					final double currentVal = data[ yy * image.getWidth() + xx ];
 
 					if ( currentVal > valMax )
