@@ -2,7 +2,11 @@ package plugins.tinevez.tubeskinner;
 
 import java.awt.Color;
 import java.awt.geom.Point2D;
+import java.lang.reflect.InvocationTargetException;
 
+import javax.swing.SwingUtilities;
+
+import icy.gui.viewer.Viewer;
 import icy.image.IcyBufferedImage;
 import icy.sequence.Sequence;
 import icy.type.DataType;
@@ -47,6 +51,18 @@ public class AortaTracker
 	 */
 	private final int windowRay = 15;
 
+	/**
+	 * How many angles are probed when for each section.
+	 */
+	private final int nAngles = 360;
+
+	/**
+	 * How many pixels is the skinned image in width. The circumference of the
+	 * specified input circle will be translated into 0.75x this number of
+	 * pixels.
+	 */
+	private final int nPixelsWidth = 500;
+
 	public AortaTracker( final Sequence sequence, final ROI2DEllipse ellipse, final double thickness, final int window )
 	{
 		this.sequence = sequence;
@@ -57,6 +73,8 @@ public class AortaTracker
 
 	public void run()
 	{
+		final double pixelSize = Math.PI * ellipse.getBounds2D().getWidth() / ( nPixelsWidth / 0.75 );
+		
 		// Outer crown circle.
 		final ROI2DEllipse roiOut = ellipse;
 //		new ROI2DEllipse(
@@ -76,7 +94,7 @@ public class AortaTracker
 		ROI2DEllipse outerPrevious = roiOut;
 
 		final Sequence outWrap = new Sequence( "outWrap" );
-		final IcyBufferedImage unWrapImage = new IcyBufferedImage( 360, sequence.getSizeZ(), 1, DataType.DOUBLE );
+		final IcyBufferedImage unWrapImage = new IcyBufferedImage( nPixelsWidth, sequence.getSizeZ(), 1, DataType.DOUBLE );
 		outWrap.addImage( unWrapImage );
 
 		final int width = sequence.getWidth();
@@ -173,56 +191,80 @@ public class AortaTracker
 			 */
 
 			ROI2DPolyLine maxFitROI = null;
+			double rPrev = -1.;
+			double thetaPrev = -1.;
+			double sPrev = -1.;
 
-			double previousBestRay = -1.;
-			for ( int angle = 0; angle < 360; angle++ )
+			final double R0 = outer.getBounds2D().getWidth() / 2;
+			for ( int iTheta = 0; iTheta < nAngles; iTheta++ )
 			{
+				final double theta = 2 * Math.PI * iTheta / nAngles;
 				final Point2D center = new Point2D.Double( outer.getBounds2D().getCenterX(), outer.getBounds().getCenterY() );
-				final double rayOuter = outer.getBounds2D().getWidth() / 2;
 
+				double rMax = R0;
+				double intensityMax = java.lang.Double.NEGATIVE_INFINITY;
 
-				double bestRay = 0;
-				double valMax = java.lang.Double.NEGATIVE_INFINITY;
-
-				for ( double ray = rayOuter - windowRay; ray < rayOuter + windowRay; ray++ )
+				for ( double r = R0 - windowRay; r < R0 + windowRay; r++ )
 				{
-					final int xx = ( int ) ( center.getX() + Math.cos( Math.toRadians( angle ) ) * ray );
-					final int yy = ( int ) ( center.getY() + Math.sin( Math.toRadians( angle ) ) * ray );
-
+					final long xx = Math.round( center.getX() + Math.cos( theta ) * r );
+					final long yy = Math.round( center.getY() + Math.sin( theta ) * r );
 					if ( xx < 0 || yy < 0 || xx >= width || yy >= height )
 						continue;
-					
 
-					// Weight value by its distance to the previous max found.
-					double currentVal = data[ yy * image.getWidth() + xx ];
-					if ( previousBestRay > 0 )
+					/*
+					 * Weight value by its distance to the previous max found.
+					 */
+					double intensityR = data[ ( int ) ( yy * image.getWidth() + xx ) ];
+					if ( rPrev > 0 )
 					{
-						final double alpha = ( ray - previousBestRay ) / windowRay;
-						currentVal = currentVal / ( 1 + alpha * alpha );
+						final double alpha = ( r - rPrev ) / windowRay;
+						intensityR = intensityR / ( 1 + alpha * alpha );
 					}
 
-					if ( currentVal > valMax )
+					if ( intensityR > intensityMax )
 					{
-						valMax = currentVal;
-						bestRay = ray;
+						intensityMax = intensityR;
+						rMax = r;
 					}
 
 				}
 
-				if ( previousBestRay < 0 )
-					previousBestRay = bestRay;
-
 				/*
-				 * TODO Do not use theta for the X axis of the unwrapped image,
-				 * but instead the curvilinear coordinate along the contour.
+				 * Use the curvilinear coordinate along the contour to report
+				 * the position of this maxima.
 				 */
-				unWrapImage.setData( angle, z, 0, valMax );
+				
+				if ( rPrev < 0 )
+				{
+					rPrev = rMax;
+					thetaPrev = theta;
+					sPrev = 0.;
+					unWrapImage.setData( iTheta, z, 0, intensityMax );
+				}
+				else
+				{
+					// Compute infinitesimal curvilinear displacement.
+					final double dTheta = theta - thetaPrev;
+					final double dr = rMax - rPrev;
+					final double drdTheta = dr / dTheta;
+					final double ds = Math.sqrt( rMax * rMax + drdTheta * drdTheta ) * dTheta;
+					
+					final double s = sPrev + ds;
+					final int i0 = ( int ) Math.round( sPrev / pixelSize );
+					final int i1 = ( int ) Math.round( s / pixelSize );
+					if ( i0 < nPixelsWidth && i1 <= nPixelsWidth )
+						for ( int i = i0; i < i1; i++ )
+							unWrapImage.setData( i, z, 0, intensityMax );
 
+					thetaPrev = theta;
+					rPrev = rMax;
+					sPrev = s;
+				}
 
 				// Build polygon contour.
 				final Point2D point = new Point2D.Double(
-						center.getX() + Math.cos( Math.toRadians( angle ) ) * bestRay,
-						center.getY() + Math.sin( Math.toRadians( angle ) ) * bestRay );
+						center.getX() + Math.cos( theta ) * rMax,
+						center.getY() + Math.sin( theta ) * rMax );
 
 				if ( maxFitROI == null )
 					maxFitROI = new ROI2DPolyLine( point );
@@ -242,6 +284,26 @@ public class AortaTracker
 		sequence.addROI( tube );
 
 		unWrapImage.endUpdate();
+
+		try
+		{
+			SwingUtilities.invokeAndWait( new Runnable()
+			{
+				@Override
+				public void run()
+				{
+					new Viewer( outWrap );
+				}
+			} );
+		}
+		catch ( final InvocationTargetException e )
+		{
+			e.printStackTrace();
+		}
+		catch ( final InterruptedException e )
+		{
+			e.printStackTrace();
+		}
 
 	}
 
