@@ -10,6 +10,8 @@ import plugins.kernel.roi.roi2d.ROI2DEllipse;
 public class TubeSkinner extends EzPlug
 {
 
+	private final EzVarInteger segmentationChannel = new EzVarInteger( "Segmentation channel", 0, 0, 10, 1 );
+
 	private final EzVarInteger crownThickness = new EzVarInteger( "Crown thickness", 15, 1, 1000, 1 );
 
 	private final EzVarInteger searchWindow = new EzVarInteger( "Tube center search window", 5, 1, 1000, 1 );
@@ -49,12 +51,18 @@ public class TubeSkinner extends EzPlug
 			return;
 		}
 
-		new AortaTracker( sequence, ellipse, crownThickness.getValue( true ).intValue(), searchWindow.getValue( true ).intValue() ).run();
+		new AortaTracker(
+				sequence,
+				ellipse,
+				segmentationChannel.getValue( true ).intValue(),
+				crownThickness.getValue( true ).intValue(),
+				searchWindow.getValue( true ).intValue() ).run();
 	}
 
 	@Override
 	protected void initialize()
 	{
+		addEzComponent( segmentationChannel );
 		addEzComponent( crownThickness );
 		addEzComponent( searchWindow );
 	}

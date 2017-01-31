@@ -38,7 +38,7 @@ public class AortaTracker
 	/**
 	 * In what channel should we perform the segmentation step.
 	 */
-	private final int segmentationChannel = 0;
+	private final int segmentationChannel;
 
 	/**
 	 * Time-point currently processed.
@@ -56,24 +56,21 @@ public class AortaTracker
 	 */
 	private final int nAngles = 360;
 
-	/**
-	 * How many pixels is the skinned image in width. The circumference of the
-	 * specified input circle will be translated into 0.75x this number of
-	 * pixels.
-	 */
-	private final int nPixelsWidth = 500;
-
-	public AortaTracker( final Sequence sequence, final ROI2DEllipse ellipse, final double thickness, final int window )
+	public AortaTracker( final Sequence sequence, final ROI2DEllipse ellipse, final int segmentationChannel, final double thickness, final int window )
 	{
 		this.sequence = sequence;
 		this.ellipse = ellipse;
+		this.segmentationChannel = segmentationChannel;
 		this.thickness = thickness;
 		this.searchWindow = window;
 	}
 
 	public void run()
 	{
-		final double pixelSize = Math.PI * ellipse.getBounds2D().getWidth() / ( nPixelsWidth / 0.75 );
+		final double pixelSize = 1.;
+		final int nx = ( int ) ( Math.PI * ellipse.getBounds2D().getWidth() * 1.5 / pixelSize );
+		final int nz = ( int ) ( sequence.getSizeZ() / pixelSize );
+		final int nc = sequence.getSizeC();
 		
 		// Outer crown circle.
 		final ROI2DEllipse roiOut = ellipse;
@@ -94,7 +91,7 @@ public class AortaTracker
 		ROI2DEllipse outerPrevious = roiOut;
 
 		final Sequence outWrap = new Sequence( "outWrap" );
-		final IcyBufferedImage unWrapImage = new IcyBufferedImage( nPixelsWidth, sequence.getSizeZ(), 1, DataType.DOUBLE );
+		final IcyBufferedImage unWrapImage = new IcyBufferedImage( nx, nz, nc, DataType.FLOAT );
 		outWrap.addImage( unWrapImage );
 
 		final int width = sequence.getWidth();
@@ -110,6 +107,8 @@ public class AortaTracker
 
 		for ( int z = 1; z < sequence.getSizeZ(); z++ )
 		{
+			final int iy = ( int ) ( z / pixelSize );
+			
 			// Current crown from previous Z-slice.
 			final ROI2DEllipse inner = ( ROI2DEllipse ) innerPrevious.getCopy();
 			final ROI2DEllipse outer = ( ROI2DEllipse ) outerPrevious.getCopy();
@@ -129,13 +128,6 @@ public class AortaTracker
 					final Point2D center = new Point2D.Double( outer.getBounds2D().getCenterX(), outer.getBounds().getCenterY() );
 					final double rayOuter = outer.getBounds2D().getWidth() / 2;
 					final double rayInner = inner.getBounds2D().getWidth() / 2;
-
-					/*
-					 * TODO We actually do not sum over the whole crown but
-					 * simply along a circle. Use ImgLib2 Iterators?
-					 * 
-					 * TODO Add bound checks.
-					 */
 
 					for ( float angle = 0; angle < 2 * 3.14d; angle += 0.1 )
 					{
@@ -193,7 +185,7 @@ public class AortaTracker
 			ROI2DPolyLine maxFitROI = null;
 			double rPrev = -1.;
 			double thetaPrev = -1.;
-			double sPrev = -1.;
+//			double sPrev = -1.;
 
 			final double R0 = outer.getBounds2D().getWidth() / 2;
 			for ( int iTheta = 0; iTheta < nAngles; iTheta++ )
@@ -204,12 +196,14 @@ public class AortaTracker
 				double rMax = R0;
 				double intensityMax = java.lang.Double.NEGATIVE_INFINITY;
 
+				final double[] values = new double[ nc ];
 				for ( double r = R0 - windowRay; r < R0 + windowRay; r++ )
 				{
 					final long xx = Math.round( center.getX() + Math.cos( theta ) * r );
 					final long yy = Math.round( center.getY() + Math.sin( theta ) * r );
 					if ( xx < 0 || yy < 0 || xx >= width || yy >= height )
 						continue;
+
 
 					/*
 					 * Weight value by its distance to the previous max found.
@@ -225,6 +219,8 @@ public class AortaTracker
 					{
 						intensityMax = intensityR;
 						rMax = r;
+						for ( int c = 0; c < nc; c++ )
+							values[ c ] = image.getData( ( int ) xx, ( int ) yy, c );
 					}
 
 				}
@@ -238,27 +234,33 @@ public class AortaTracker
 				{
 					rPrev = rMax;
 					thetaPrev = theta;
-					sPrev = 0.;
-					unWrapImage.setData( iTheta, z, 0, intensityMax );
+//					sPrev = 0.;
+					for ( int c = 0; c < nc; c++ )
+						unWrapImage.setData( 0, iy, c, values[ c ] );
 				}
 				else
 				{
 					// Compute infinitesimal curvilinear displacement.
-					final double dTheta = theta - thetaPrev;
-					final double dr = rMax - rPrev;
-					final double drdTheta = dr / dTheta;
-					final double ds = Math.sqrt( rMax * rMax + drdTheta * drdTheta ) * dTheta;
-					
-					final double s = sPrev + ds;
-					final int i0 = ( int ) Math.round( sPrev / pixelSize );
-					final int i1 = ( int ) Math.round( s / pixelSize );
-					if ( i0 < nPixelsWidth && i1 <= nPixelsWidth )
-						for ( int i = i0; i < i1; i++ )
-							unWrapImage.setData( i, z, 0, intensityMax );
+//					final double dTheta = theta - thetaPrev;
+//					final double dr = rMax - rPrev;
+//					final double drdTheta = dr / dTheta;
+//					final double ds = Math.sqrt( rMax * rMax + drdTheta * drdTheta ) * dTheta;
+//					final double s = sPrev + ds;
+//					final int i0 = ( int ) Math.round( sPrev / pixelSize );
+//					final int i1 = ( int ) Math.round( s / pixelSize );
+
+					// Projected on the initial circle.
+					final int i0 = ( int ) Math.round( R0 * thetaPrev );
+					final int i1 = ( int ) Math.round( R0 * theta );
+
+					if ( i0 < nx && i1 <= nx )
+						for ( int ix = i0; ix < i1; ix++ )
+							for ( int c = 0; c < nc; c++ )
+								unWrapImage.setData( ix, iy, c, values[ c ] );
 
 					thetaPrev = theta;
 					rPrev = rMax;
-					sPrev = s;
+//					sPrev = s;
 				}
 
 				// Build polygon contour.
