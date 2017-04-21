@@ -1,9 +1,11 @@
 package plugins.tinevez.tubeskinner;
 
 import icy.gui.dialog.MessageDialog;
+import icy.gui.viewer.Viewer;
 import icy.roi.ROI;
 import icy.sequence.Sequence;
 import plugins.adufour.ezplug.EzPlug;
+import plugins.adufour.ezplug.EzVarBoolean;
 import plugins.adufour.ezplug.EzVarInteger;
 import plugins.kernel.roi.roi2d.ROI2DEllipse;
 
@@ -16,6 +18,8 @@ public class TubeSkinner extends EzPlug
 
 	private final EzVarInteger searchWindow = new EzVarInteger( "Tube center search window", 5, 1, 1000, 1 );
 
+	private final EzVarBoolean allTimePoints = new EzVarBoolean( "Process all time-points", false );
+
 	@Override
 	public void clean()
 	{}
@@ -24,7 +28,13 @@ public class TubeSkinner extends EzPlug
 	protected void execute()
 	{
 		// Get current active image.
-		final Sequence sequence = getActiveSequence();
+		final Viewer viewer = getActiveViewer();
+		if ( null == viewer )
+		{
+			MessageDialog.showDialog( "Please select an image first.", MessageDialog.INFORMATION_MESSAGE );
+			return;
+		}
+		final Sequence sequence = viewer.getSequence();
 		if ( null == sequence )
 		{
 			MessageDialog.showDialog( "Please select an image first.", MessageDialog.INFORMATION_MESSAGE );
@@ -51,12 +61,17 @@ public class TubeSkinner extends EzPlug
 			return;
 		}
 
-		new AortaTracker(
+		final int currentTimePoint = viewer.getPositionT();
+
+		final AortaTracker aortaTracker = new AortaTracker(
 				sequence,
 				ellipse,
 				segmentationChannel.getValue( true ).intValue(),
 				crownThickness.getValue( true ).intValue(),
-				searchWindow.getValue( true ).intValue() ).run();
+				searchWindow.getValue( true ).intValue(),
+				allTimePoints.getValue( true ) );
+		aortaTracker.setTimePoint( currentTimePoint );
+		aortaTracker.run();
 	}
 
 	@Override
@@ -65,6 +80,7 @@ public class TubeSkinner extends EzPlug
 		addEzComponent( segmentationChannel );
 		addEzComponent( crownThickness );
 		addEzComponent( searchWindow );
+		addEzComponent( allTimePoints );
 	}
 
 }
