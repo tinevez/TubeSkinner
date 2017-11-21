@@ -134,10 +134,12 @@ public class AortaTracker
 		unWrapImage.beginUpdate();
 
 		final ROI3DArea skin = new ROI3DArea();
-		skin.setName( "Skin t=" + timepoint );
+		skin.setName( "Skin_t=" + timepoint );
+		skin.setT( timepoint );
 
 		final ROI3DArea tube = new ROI3DArea();
-		tube.setName( "Rough tube t=" + timepoint );
+		tube.setName( "RoughTube_t=" + timepoint );
+		tube.setT( timepoint );
 
 		// Outer crown circle.
 		final ROI2DEllipse roiOut = ellipse;
@@ -326,11 +328,9 @@ public class AortaTracker
 		unWrapImage.endUpdate();
 
 		skin.setColor( Color.CYAN );
-		skin.setT( processAllTimePoints ? timepoint : 0 );
 		sequence.addROI( skin );
 
 		tube.setColor( Color.ORANGE );
-		tube.setT( processAllTimePoints ? timepoint : 0 );
 		sequence.addROI( tube );
 
 	}
