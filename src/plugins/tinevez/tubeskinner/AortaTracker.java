@@ -57,7 +57,11 @@ public class AortaTracker
 
 	private int targetTimePoint;
 
-	public AortaTracker( final Sequence sequence, final ROI2DEllipse ellipse, final int segmentationChannel, final double thickness, final int window, final boolean processAllTimePoints )
+	private final double thetaStart;
+
+	private boolean canceled = false;;
+
+	public AortaTracker( final Sequence sequence, final ROI2DEllipse ellipse, final int segmentationChannel, final double thickness, final int window, final boolean processAllTimePoints, final double thetaStart )
 	{
 		this.sequence = sequence;
 		this.ellipse = ellipse;
@@ -65,10 +69,12 @@ public class AortaTracker
 		this.thickness = thickness;
 		this.searchWindow = window;
 		this.processAllTimePoints = processAllTimePoints;
+		this.thetaStart = thetaStart;
 	}
 
 	public void run()
 	{
+		canceled = false;
 		final int nt = processAllTimePoints ? sequence.getSizeT() : 1;
 
 		final Sequence outWrap = new Sequence( "Unwrapped " + sequence.getName() );
@@ -99,7 +105,11 @@ public class AortaTracker
 		if ( processAllTimePoints )
 		{
 			for ( int timepoint = 0; timepoint < nt; timepoint++ )
+			{
+				if ( canceled )
+					return;
 				processTimePoint( timepoint, outWrap );
+			}
 		}
 		else
 		{
@@ -144,6 +154,9 @@ public class AortaTracker
 
 		for ( int z = 0; z < sequence.getSizeZ(); z++ )
 		{
+			if ( canceled )
+				return;
+
 			final int iy = ( int ) ( z / pixelSize );
 
 			// Current crown from previous Z-slice.
@@ -166,19 +179,31 @@ public class AortaTracker
 					final double rayOuter = outer.getBounds2D().getWidth() / 2;
 					final double rayInner = inner.getBounds2D().getWidth() / 2;
 
+					double s = 0.;
+					int n = 0;
 					for ( float angle = 0; angle < 2 * 3.14d; angle += 0.1 )
 					{
 						final int xx = ( int ) ( xOffset + center.getX() + Math.cos( angle ) * rayOuter );
 						final int yy = ( int ) ( yOffset + center.getY() + Math.sin( angle ) * rayOuter );
-						val += data[ yy * image.getWidth() + xx ];
+						if ( xx < 0 || yy < 0 || xx >= width || yy >= height )
+							continue;
+						s += data[ yy * image.getWidth() + xx ];
+						n++;
 					}
+					val = s / n;
 
+					s = 0.;
+					n = 0;
 					for ( float angle = 0; angle < 2 * 3.14d; angle += 0.1 )
 					{
 						final int xx = ( int ) ( xOffset + center.getX() + Math.cos( angle ) * rayInner );
 						final int yy = ( int ) ( yOffset + center.getY() + Math.sin( angle ) * rayInner );
-						val -= data[ yy * image.getWidth() + xx ];
+						if ( xx < 0 || yy < 0 || xx >= width || yy >= height )
+							continue;
+						s -= data[ yy * image.getWidth() + xx ];
+						n++;
 					}
+					val += s / n;
 
 					if ( val > currentMax )
 					{
@@ -219,7 +244,7 @@ public class AortaTracker
 			final double R0 = outer.getBounds2D().getWidth() / 2;
 			for ( int iTheta = 0; iTheta < nAngles; iTheta++ )
 			{
-				final double theta = 2 * Math.PI * iTheta / nAngles;
+				final double theta = 2 * Math.PI * ( ( double ) iTheta / nAngles + thetaStart / 360. );
 				final Point2D center = new Point2D.Double( outer.getBounds2D().getCenterX(), outer.getBounds().getCenterY() );
 
 				double rMax = R0;
@@ -263,8 +288,8 @@ public class AortaTracker
 				else
 				{
 					// Projected on the initial circle.
-					final int i0 = ( int ) Math.round( R0 * thetaPrev );
-					final int i1 = ( int ) Math.round( R0 * theta );
+					final int i0 = ( int ) Math.round( R0 * ( thetaPrev - thetaStart / 180. * Math.PI ) );
+					final int i1 = ( int ) Math.round( R0 * ( theta - thetaStart / 180. * Math.PI ) );
 
 					if ( i0 < nx && i1 <= nx )
 						for ( int ix = i0; ix < i1; ix++ )
@@ -289,7 +314,16 @@ public class AortaTracker
 			// Add this Z-slice contour to the 3D ROI.
 			maxFitROI.setZ( z );
 			skin.add( z, maxFitROI.getBooleanMask( true ) );
+
+			// Update display every 100th line.
+			if ( z % 100 == 0 )
+			{
+				unWrapImage.endUpdate();
+				unWrapImage.beginUpdate();
+			}
 		}
+
+		unWrapImage.endUpdate();
 
 		skin.setColor( Color.CYAN );
 		skin.setT( processAllTimePoints ? timepoint : 0 );
@@ -299,12 +333,15 @@ public class AortaTracker
 		tube.setT( processAllTimePoints ? timepoint : 0 );
 		sequence.addROI( tube );
 
-		unWrapImage.endUpdate();
-
 	}
 
 	public void setTimePoint( final int targetTimePoint )
 	{
 		this.targetTimePoint = targetTimePoint;
+	}
+
+	public void cancel()
+	{
+		canceled = true;
 	}
 }

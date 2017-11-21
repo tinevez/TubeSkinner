@@ -5,24 +5,37 @@ import icy.gui.viewer.Viewer;
 import icy.roi.ROI;
 import icy.sequence.Sequence;
 import plugins.adufour.ezplug.EzPlug;
+import plugins.adufour.ezplug.EzStoppable;
 import plugins.adufour.ezplug.EzVarBoolean;
+import plugins.adufour.ezplug.EzVarDouble;
 import plugins.adufour.ezplug.EzVarInteger;
 import plugins.kernel.roi.roi2d.ROI2DEllipse;
 
-public class TubeSkinner extends EzPlug
+public class TubeSkinner extends EzPlug implements EzStoppable
 {
 
 	private final EzVarInteger segmentationChannel = new EzVarInteger( "Segmentation channel", 0, 0, 10, 1 );
 
 	private final EzVarInteger crownThickness = new EzVarInteger( "Crown thickness", 15, 1, 1000, 1 );
 
-	private final EzVarInteger searchWindow = new EzVarInteger( "Tube center search window", 5, 1, 1000, 1 );
+	private final EzVarInteger searchWindow = new EzVarInteger( "Tube center search window", 5, 0, 1000, 1 );
 
 	private final EzVarBoolean allTimePoints = new EzVarBoolean( "Process all time-points", false );
+
+	private final EzVarDouble thetaStart = new EzVarDouble( "Start at theta ", 0., -360., 360., 45. );
+
+	private AortaTracker aortaTracker;
 
 	@Override
 	public void clean()
 	{}
+
+	@Override
+	public void stopExecution()
+	{
+		if ( aortaTracker != null )
+			aortaTracker.cancel();
+	}
 
 	@Override
 	protected void execute()
@@ -63,13 +76,14 @@ public class TubeSkinner extends EzPlug
 
 		final int currentTimePoint = viewer.getPositionT();
 
-		final AortaTracker aortaTracker = new AortaTracker(
+		this.aortaTracker = new AortaTracker(
 				sequence,
 				ellipse,
 				segmentationChannel.getValue( true ).intValue(),
 				crownThickness.getValue( true ).intValue(),
 				searchWindow.getValue( true ).intValue(),
-				allTimePoints.getValue( true ) );
+				allTimePoints.getValue( true ),
+				thetaStart.getValue( true ).doubleValue() );
 		aortaTracker.setTimePoint( currentTimePoint );
 		aortaTracker.run();
 	}
@@ -81,6 +95,7 @@ public class TubeSkinner extends EzPlug
 		addEzComponent( crownThickness );
 		addEzComponent( searchWindow );
 		addEzComponent( allTimePoints );
+		addEzComponent( thetaStart );
 	}
 
 }
