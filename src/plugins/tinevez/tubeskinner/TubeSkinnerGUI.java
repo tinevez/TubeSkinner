@@ -14,6 +14,10 @@ import plugins.kernel.roi.roi2d.ROI2DEllipse;
 public class TubeSkinnerGUI extends EzPlug implements EzStoppable
 {
 
+	private static final String PLUGIN_VERSION = "1.0.0";
+
+	private static final String PLUGIN_NAME = "TubeSkinner v" + PLUGIN_VERSION;
+
 	private final EzVarInteger segmentationChannel = new EzVarInteger( "Segmentation channel", 0, 0, 10, 1 );
 
 	private final EzVarInteger crownThickness = new EzVarInteger( "Crown thickness", 15, 1, 1000, 1 );
@@ -96,6 +100,12 @@ public class TubeSkinnerGUI extends EzPlug implements EzStoppable
 		addEzComponent( searchWindow );
 		addEzComponent( allTimePoints );
 		addEzComponent( thetaStart );
+	}
+
+	@Override
+	public String getName()
+	{
+		return PLUGIN_NAME;
 	}
 
 }
