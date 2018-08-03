@@ -10,7 +10,7 @@ import icy.main.Icy;
 import icy.sequence.Sequence;
 import plugins.kernel.roi.roi2d.ROI2DEllipse;
 
-public class TestDrive
+public class RunExample
 {
 
 	public static void main( final String[] args ) throws InvocationTargetException, InterruptedException
@@ -37,7 +37,7 @@ public class TestDrive
 
 	}
 
-	private TestDrive()
+	private RunExample()
 	{}
 
 }
