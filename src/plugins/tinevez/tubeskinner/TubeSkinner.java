@@ -61,6 +61,38 @@ public class TubeSkinner
 
 	private boolean canceled = false;;
 
+	/**
+	 * Instantiates a TubeSkinner.
+	 *
+	 * @param sequence
+	 *            the input sequence to operate on.
+	 * @param ellipse
+	 *            the circle to initiate the tube fit. It must be adjusted on
+	 *            the first z-slice (position 0) of the time-point that is to be
+	 *            processed. If it is an ellipse, only its width is considered.
+	 * @param segmentationChannel
+	 *            the channel to operate on when these is multiple channels in
+	 *            the input sequence. All channels will be extracted, but the
+	 *            segmentation channel will be used for the fit.
+	 * @param thickness
+	 *            the thickness (in pixels) of the crown in which to search for
+	 *            the tube membrane. The radius of the crown is specified by the
+	 *            starting ellipse.
+	 * @param window
+	 *            the window size (in pixels) in which to search for the tube
+	 *            center. The circle center is adjusted from the circle in the
+	 *            previous z-slice by searching around its center +/- the window
+	 *            size.
+	 * @param processAllTimePoints
+	 *            if <code>true</code>, all time-points in the input sequence
+	 *            will be processed. If <code>false</code>, the time-point to
+	 *            process can be set with the {@link #setTimePoint(int)} method
+	 *            (first one by default).
+	 * @param thetaStart
+	 *            what angle (in degrees) should correspond to x=0 in the
+	 *            unwrapped image. If set to -45, the x axis of the unwrapped
+	 *            image will range from -45 degrees to 315 degrees.
+	 */
 	public TubeSkinner( final Sequence sequence, final ROI2DEllipse ellipse, final int segmentationChannel, final double thickness, final int window, final boolean processAllTimePoints, final double thetaStart )
 	{
 		this.sequence = sequence;
@@ -72,6 +104,10 @@ public class TubeSkinner
 		this.thetaStart = thetaStart;
 	}
 
+	/**
+	 * Executes the tube-skinner process. This will show a new sequence in Icy
+	 * containing the unwrapped image.
+	 */
 	public void run()
 	{
 		canceled = false;
@@ -335,11 +371,21 @@ public class TubeSkinner
 
 	}
 
+	/**
+	 * Sets the time-point to unwrap. If the {@link #processAllTimePoints} was
+	 * set to <code>true</code> at instantiation, this parameter is ignored.
+	 *
+	 * @param targetTimePoint
+	 *            the time-point to unwrap.
+	 */
 	public void setTimePoint( final int targetTimePoint )
 	{
 		this.targetTimePoint = targetTimePoint;
 	}
 
+	/**
+	 * Cancels the current process.
+	 */
 	public void cancel()
 	{
 		canceled = true;
