@@ -6,6 +6,10 @@
 /.project
 /.settings/
 
+## Icy ##
+setting.xml
+workspace/
+
 ## vim ##
 *.swp
 
