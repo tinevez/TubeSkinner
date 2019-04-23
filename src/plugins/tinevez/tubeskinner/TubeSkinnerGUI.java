@@ -26,7 +26,9 @@ public class TubeSkinnerGUI extends EzPlug implements EzStoppable
 
 	private final EzVarBoolean allTimePoints = new EzVarBoolean( "Process all time-points", false );
 
-	private final EzVarDouble thetaStart = new EzVarDouble( "Start at theta ", 0., -360., 360., 45. );
+	private final EzVarDouble thetaStart = new EzVarDouble( "Start at theta = ", 0., -360., 360., 45. );
+
+	private final EzVarInteger thetaRange = new EzVarInteger( "Evaluate theta over = ", 360, 90, 360, 45 );
 
 	private TubeSkinner aortaTracker;
 
@@ -87,7 +89,8 @@ public class TubeSkinnerGUI extends EzPlug implements EzStoppable
 				crownThickness.getValue( true ).intValue(),
 				searchWindow.getValue( true ).intValue(),
 				allTimePoints.getValue( true ),
-				thetaStart.getValue( true ).doubleValue() );
+				thetaStart.getValue( true ).doubleValue(),
+				thetaRange.getValue( true ).intValue() );
 		aortaTracker.setTimePoint( currentTimePoint );
 		aortaTracker.run();
 	}
@@ -100,6 +103,7 @@ public class TubeSkinnerGUI extends EzPlug implements EzStoppable
 		addEzComponent( searchWindow );
 		addEzComponent( allTimePoints );
 		addEzComponent( thetaStart );
+		addEzComponent( thetaRange );
 	}
 
 	@Override

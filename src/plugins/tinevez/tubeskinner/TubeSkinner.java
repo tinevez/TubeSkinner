@@ -46,7 +46,8 @@ public class TubeSkinner
 	private final int windowRay = 15;
 
 	/**
-	 * How many angles are probed when for each section.
+	 * How many angles are probed when for each section in the case of a full
+	 * circle.
 	 */
 	private final int nAngles = 360;
 
@@ -58,6 +59,8 @@ public class TubeSkinner
 	private int targetTimePoint;
 
 	private final double thetaStart;
+
+	private final int thetaRange;
 
 	private boolean canceled = false;;
 
@@ -92,8 +95,12 @@ public class TubeSkinner
 	 *            what angle (in degrees) should correspond to x=0 in the
 	 *            unwrapped image. If set to -45, the x axis of the unwrapped
 	 *            image will range from -45 degrees to 315 degrees.
+	 * @param thetaRange
+	 *            what angular arc (in degrees) should be evaluated to fit the
+	 *            tube. The evaluation begins at the angle provided at
+	 *            thetaStart and the user to target a specific part of the tube.
 	 */
-	public TubeSkinner( final Sequence sequence, final ROI2DEllipse ellipse, final int segmentationChannel, final double thickness, final int window, final boolean processAllTimePoints, final double thetaStart )
+	public TubeSkinner( final Sequence sequence, final ROI2DEllipse ellipse, final int segmentationChannel, final double thickness, final int window, final boolean processAllTimePoints, final double thetaStart, final int thetaRange )
 	{
 		this.sequence = sequence;
 		this.ellipse = ellipse;
@@ -102,6 +109,7 @@ public class TubeSkinner
 		this.searchWindow = window;
 		this.processAllTimePoints = processAllTimePoints;
 		this.thetaStart = thetaStart;
+		this.thetaRange = thetaRange;
 	}
 
 	/**
@@ -280,9 +288,10 @@ public class TubeSkinner
 			double thetaPrev = -1.;
 
 			final double R0 = outer.getBounds2D().getWidth() / 2;
+			final double theta0 = 2 * Math.PI * ( thetaStart / 360. );
 			for ( int iTheta = 0; iTheta < nAngles; iTheta++ )
 			{
-				final double theta = 2 * Math.PI * ( ( double ) iTheta / nAngles + thetaStart / 360. );
+				final double theta = theta0 + 2 * Math.PI * thetaRange / 360 * ( ( double ) iTheta / nAngles );
 				final Point2D center = new Point2D.Double( outer.getBounds2D().getCenterX(), outer.getBounds().getCenterY() );
 
 				double rMax = R0;
