@@ -20,3 +20,6 @@ workspace/
 .DS_Store
 
 bin/
+
+## Additional icy plugins
+plugins/
