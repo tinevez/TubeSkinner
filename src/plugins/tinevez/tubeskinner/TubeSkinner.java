@@ -46,12 +46,6 @@ public class TubeSkinner
 	private final int windowRay = 15;
 
 	/**
-	 * How many angles are probed when for each section in the case of a full
-	 * circle.
-	 */
-	private final int nAngles = 360;
-
-	/**
 	 * Whether we should process all time-points or just the current time-point.
 	 */
 	private final boolean processAllTimePoints;
@@ -61,6 +55,16 @@ public class TubeSkinner
 	private final double thetaStart;
 
 	private final int thetaRange;
+
+	/**
+	 * How many angles are probed when for each section.
+	 */
+	private int nAngles;
+
+	/**
+	 * Angle between each probed ray. if ==1 then nAngles = thetaRange.
+	 */
+	private final double sampleAngle = 1.;
 
 	private boolean canceled = false;;
 
@@ -165,15 +169,20 @@ public class TubeSkinner
 	private void processTimePoint( final int timepoint, final Sequence outWrap )
 	{
 		final double pixelSize = 1.;
-		final int nx = ( int ) ( Math.PI * ellipse.getBounds2D().getWidth() / pixelSize );
+
+		final int nx = ( int ) ( ( thetaRange * Math.PI / 360 ) * ( ellipse.getBounds2D().getWidth() / 2 ) / pixelSize );
 		final int nz = ( int ) ( sequence.getSizeZ() / pixelSize );
 		final int nc = sequence.getSizeC();
 
+		// Create an empty image
 		final IcyBufferedImage unWrapImage = new IcyBufferedImage( nx, nz, nc, DataType.FLOAT );
 		outWrap.addImage( processAllTimePoints ? timepoint : 0, unWrapImage );
 
 		final int width = sequence.getWidth();
 		final int height = sequence.getHeight();
+
+		// Adapt the number of rays to the desired thetaRange
+		this.nAngles = ( int ) ( thetaRange / sampleAngle );
 
 		unWrapImage.beginUpdate();
 
@@ -197,6 +206,10 @@ public class TubeSkinner
 
 		ROI2DEllipse innerPrevious = roiIn;
 		ROI2DEllipse outerPrevious = roiOut;
+
+		// define starting point of the tube angle
+		final double theta0Rad = 2 * Math.PI * ( thetaStart / 360. );
+		final double thetaRangeRad = 2 * Math.PI * ( thetaRange / 360. );
 
 		for ( int z = 0; z < sequence.getSizeZ(); z++ )
 		{
@@ -227,7 +240,7 @@ public class TubeSkinner
 
 					double s = 0.;
 					int n = 0;
-					for ( float angle = 0; angle < 2 * 3.14d; angle += 0.1 )
+					for ( float angle = ( float ) theta0Rad; angle < thetaRangeRad + theta0Rad; angle += 0.1 )
 					{
 						final int xx = ( int ) ( xOffset + center.getX() + Math.cos( angle ) * rayOuter );
 						final int yy = ( int ) ( yOffset + center.getY() + Math.sin( angle ) * rayOuter );
@@ -240,7 +253,7 @@ public class TubeSkinner
 
 					s = 0.;
 					n = 0;
-					for ( float angle = 0; angle < 2 * 3.14d; angle += 0.1 )
+					for ( float angle = ( float ) theta0Rad; angle < thetaRangeRad + theta0Rad; angle += 0.1 )
 					{
 						final int xx = ( int ) ( xOffset + center.getX() + Math.cos( angle ) * rayInner );
 						final int yy = ( int ) ( yOffset + center.getY() + Math.sin( angle ) * rayInner );
@@ -280,7 +293,7 @@ public class TubeSkinner
 
 			/*
 			 * Read max value along the rays emerging from the crown center, for
-			 * all theta.
+			 * all relevant theta.
 			 */
 
 			ROI2DPolyLine maxFitROI = null;
@@ -288,10 +301,10 @@ public class TubeSkinner
 			double thetaPrev = -1.;
 
 			final double R0 = outer.getBounds2D().getWidth() / 2;
-			final double theta0 = 2 * Math.PI * ( thetaStart / 360. );
+
 			for ( int iTheta = 0; iTheta < nAngles; iTheta++ )
 			{
-				final double theta = theta0 + 2 * Math.PI * thetaRange / 360 * ( ( double ) iTheta / nAngles );
+				final double theta = theta0Rad + 2 * Math.PI * thetaRange / 360 * ( ( double ) iTheta / nAngles );
 				final Point2D center = new Point2D.Double( outer.getBounds2D().getCenterX(), outer.getBounds().getCenterY() );
 
 				double rMax = R0;
