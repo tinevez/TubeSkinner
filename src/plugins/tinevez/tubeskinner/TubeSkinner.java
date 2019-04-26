@@ -170,7 +170,7 @@ public class TubeSkinner
 	{
 		final double pixelSize = 1.;
 
-		final int nx = ( int ) ( ( thetaRange * Math.PI / 360 ) * ( ellipse.getBounds2D().getWidth() / 2 ) / pixelSize );
+		final int nx = ( int ) ( ( thetaRange * 2 * Math.PI / 360 ) * ( ellipse.getBounds2D().getWidth() / 2 ) / pixelSize );
 		final int nz = ( int ) ( sequence.getSizeZ() / pixelSize );
 		final int nc = sequence.getSizeC();
 
