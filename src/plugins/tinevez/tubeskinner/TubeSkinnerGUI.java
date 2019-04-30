@@ -14,7 +14,7 @@ import plugins.kernel.roi.roi2d.ROI2DEllipse;
 public class TubeSkinnerGUI extends EzPlug implements EzStoppable
 {
 
-	private static final String PLUGIN_VERSION = "1.0.0";
+	private static final String PLUGIN_VERSION = "1.1.0";
 
 	private static final String PLUGIN_NAME = "TubeSkinner v" + PLUGIN_VERSION;
 
