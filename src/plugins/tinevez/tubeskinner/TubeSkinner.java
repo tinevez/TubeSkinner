@@ -311,6 +311,7 @@ public class TubeSkinner
 				double intensityMax = java.lang.Double.NEGATIVE_INFINITY;
 
 				final double[] values = new double[ nc ];
+				// final double[] newValues = new double[ nc ];
 				for ( double r = R0 - windowRay; r < R0 + windowRay; r++ )
 				{
 					final long xx = Math.round( center.getX() + Math.cos( theta ) * r );
@@ -333,7 +334,16 @@ public class TubeSkinner
 						intensityMax = intensityR;
 						rMax = r;
 						for ( int c = 0; c < nc; c++ )
-							values[ c ] = image.getData( ( int ) xx, ( int ) yy, c );
+						{
+							/*
+							 * deploy the value around the max rather than the
+							 * single most probable pixel
+							 */
+							values[ c ] = image.getDataInterpolated(
+									center.getX() + Math.cos( theta ) * r,
+									center.getY() + Math.sin( theta ) * r,
+									c );
+						}
 					}
 
 				}
