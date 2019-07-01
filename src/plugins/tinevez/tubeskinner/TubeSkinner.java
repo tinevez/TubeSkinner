@@ -301,6 +301,7 @@ public class TubeSkinner
 			double thetaPrev = -1.;
 
 			final double R0 = outer.getBounds2D().getWidth() / 2;
+//			final double[] rs = new double[ nc ];
 
 			for ( int iTheta = 0; iTheta < nAngles; iTheta++ )
 			{
@@ -311,7 +312,7 @@ public class TubeSkinner
 				double intensityMax = java.lang.Double.NEGATIVE_INFINITY;
 
 				final double[] values = new double[ nc ];
-				// final double[] newValues = new double[ nc ];
+//				final double[] newValues = new double[ nc ]; => if need for a more complex int projection
 				for ( double r = R0 - windowRay; r < R0 + windowRay; r++ )
 				{
 					final long xx = Math.round( center.getX() + Math.cos( theta ) * r );
@@ -343,9 +344,11 @@ public class TubeSkinner
 									center.getX() + Math.cos( theta ) * r,
 									center.getY() + Math.sin( theta ) * r,
 									c );
+
+//							rs[ 0 ] = r;
+//							newValues[ c ] = getRadContourInt( center, theta, rs );
 						}
 					}
-
 				}
 
 				if ( rPrev < 0 )
@@ -402,6 +405,13 @@ public class TubeSkinner
 		sequence.addROI( tube );
 
 	}
+
+//	private double getRadContourInt( final Point2D center, final double theta, final double[] rs )
+//	{
+//		// Could return a contour value of arbitrary complexity such as convolved with a Guassian kernel
+//
+//		return 0;
+//	}
 
 	/**
 	 * Sets the time-point to unwrap. If the {@link #processAllTimePoints} was
