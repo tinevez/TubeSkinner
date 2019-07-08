@@ -34,7 +34,7 @@ public class RunExample
 		final double thetaStart = 45.;
 		final int thetaRange = 360;
 		final TubeSkinner tubeSkinner = new TubeSkinner( sequence, circle, segmentationChannel, thickness, window, processAllTimePoints, thetaStart, thetaRange );
-		tubeSkinner.run();
+		tubeSkinner.run( false );
 
 	}
 

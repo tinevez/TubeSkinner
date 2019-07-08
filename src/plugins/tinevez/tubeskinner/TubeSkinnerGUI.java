@@ -4,14 +4,17 @@ import icy.gui.dialog.MessageDialog;
 import icy.gui.viewer.Viewer;
 import icy.roi.ROI;
 import icy.sequence.Sequence;
+import plugins.adufour.blocks.lang.Block;
+import plugins.adufour.blocks.util.VarList;
 import plugins.adufour.ezplug.EzPlug;
 import plugins.adufour.ezplug.EzStoppable;
 import plugins.adufour.ezplug.EzVarBoolean;
 import plugins.adufour.ezplug.EzVarDouble;
 import plugins.adufour.ezplug.EzVarInteger;
+import plugins.adufour.vars.lang.VarSequence;
 import plugins.kernel.roi.roi2d.ROI2DEllipse;
 
-public class TubeSkinnerGUI extends EzPlug implements EzStoppable
+public class TubeSkinnerGUI extends EzPlug implements EzStoppable, Block
 {
 
 	private static final String PLUGIN_VERSION = "1.1.1";
@@ -31,6 +34,8 @@ public class TubeSkinnerGUI extends EzPlug implements EzStoppable
 	private final EzVarInteger thetaRange = new EzVarInteger( "Evaluate theta over = ", 360, 90, 360, 45 );
 
 	private TubeSkinner aortaTracker;
+
+	private final VarSequence outWrap = new VarSequence( "Unwrapped image", ( Sequence ) null );
 
 	@Override
 	public void clean()
@@ -92,7 +97,7 @@ public class TubeSkinnerGUI extends EzPlug implements EzStoppable
 				thetaStart.getValue( true ).doubleValue(),
 				thetaRange.getValue( true ).intValue() );
 		aortaTracker.setTimePoint( currentTimePoint );
-		aortaTracker.run();
+		outWrap.setValue( aortaTracker.run( isHeadLess() ) );
 	}
 
 	@Override
@@ -110,6 +115,23 @@ public class TubeSkinnerGUI extends EzPlug implements EzStoppable
 	public String getName()
 	{
 		return PLUGIN_NAME;
+	}
+
+	@Override
+	public void declareInput( final VarList inputMap )
+	{
+		inputMap.add( "Segmentation channel", this.segmentationChannel.getVariable() );
+		inputMap.add( "Crown thickness", this.crownThickness.getVariable() );
+		inputMap.add( "Tube center search window", this.searchWindow.getVariable() );
+		inputMap.add( "Process all time-points", this.allTimePoints.getVariable() );
+		inputMap.add( "Start at theta = ", this.thetaStart.getVariable() );
+		inputMap.add( "Evaluate theta over = ", this.thetaRange.getVariable() );
+	}
+
+	@Override
+	public void declareOutput( final VarList outputMap )
+	{
+		outputMap.add( "Unwrapped image", this.outWrap );
 	}
 
 }

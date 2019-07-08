@@ -119,8 +119,12 @@ public class TubeSkinner
 	/**
 	 * Executes the tube-skinner process. This will show a new sequence in Icy
 	 * containing the unwrapped image.
+	 * 
+	 * @param headless
+	 * 
+	 * @return
 	 */
-	public void run()
+	public Sequence run( final boolean isHeadless )
 	{
 		canceled = false;
 		final int nt = processAllTimePoints ? sequence.getSizeT() : 1;
@@ -130,24 +134,28 @@ public class TubeSkinner
 		outWrap.setPixelSizeX( sequence.getPixelSizeZ() );
 		outWrap.setTimeInterval( sequence.getTimeInterval() );
 
-		try
+		if ( !isHeadless )
 		{
-			SwingUtilities.invokeAndWait( new Runnable()
+
+			try
 			{
-				@Override
-				public void run()
+				SwingUtilities.invokeAndWait( new Runnable()
 				{
-					new Viewer( outWrap );
-				}
-			} );
-		}
-		catch ( final InvocationTargetException e )
-		{
-			e.printStackTrace();
-		}
-		catch ( final InterruptedException e )
-		{
-			e.printStackTrace();
+					@Override
+					public void run()
+					{
+						new Viewer( outWrap );
+					}
+				} );
+			}
+			catch ( final InvocationTargetException e )
+			{
+				e.printStackTrace();
+			}
+			catch ( final InterruptedException e )
+			{
+				e.printStackTrace();
+			}
 		}
 
 		if ( processAllTimePoints )
@@ -155,7 +163,7 @@ public class TubeSkinner
 			for ( int timepoint = 0; timepoint < nt; timepoint++ )
 			{
 				if ( canceled )
-					return;
+					return outWrap;
 				processTimePoint( timepoint, outWrap );
 			}
 		}
@@ -163,6 +171,8 @@ public class TubeSkinner
 		{
 			processTimePoint( targetTimePoint, outWrap );
 		}
+
+		return outWrap;
 
 	}
 
