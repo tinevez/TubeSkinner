@@ -1,0 +1,26 @@
+## Maven ##
+/target/
+
+## Eclipse ##
+/.classpath
+/.project
+/.settings/
+/.metadata/
+
+## Icy ##
+setting.xml
+workspace/
+
+## vim ##
+*.swp
+
+## Interactive tests ##
+/samples/
+
+## MacOSX
+.DS_Store
+
+bin/
+
+## Additional icy plugins
+plugins/
