@@ -11,6 +11,7 @@ import plugins.adufour.ezplug.EzStoppable;
 import plugins.adufour.ezplug.EzVarBoolean;
 import plugins.adufour.ezplug.EzVarDouble;
 import plugins.adufour.ezplug.EzVarInteger;
+import plugins.adufour.ezplug.EzVarSequence;
 import plugins.adufour.vars.lang.VarSequence;
 import plugins.kernel.roi.roi2d.ROI2DEllipse;
 
@@ -37,6 +38,8 @@ public class TubeSkinnerGUI extends EzPlug implements EzStoppable, Block
 
 	private final VarSequence outWrap = new VarSequence( "Unwrapped image", ( Sequence ) null );
 
+	private final EzVarSequence inImage = new EzVarSequence( "Input image" );
+
 	@Override
 	public void clean()
 	{}
@@ -51,18 +54,28 @@ public class TubeSkinnerGUI extends EzPlug implements EzStoppable, Block
 	@Override
 	protected void execute()
 	{
-		// Get current active image.
-		final Viewer viewer = getActiveViewer();
-		if ( null == viewer )
+		final Sequence sequence;
+
+		if ( this.isHeadLess() )
 		{
-			MessageDialog.showDialog( "Please select an image first.", MessageDialog.INFORMATION_MESSAGE );
-			return;
+			sequence = inImage.getValue();
 		}
-		final Sequence sequence = viewer.getSequence();
-		if ( null == sequence )
+
+		else
 		{
-			MessageDialog.showDialog( "Please select an image first.", MessageDialog.INFORMATION_MESSAGE );
-			return;
+			// Get current active image.
+			final Viewer viewer = getActiveViewer();
+			if ( null == viewer )
+			{
+				MessageDialog.showDialog( "Please select an image first.", MessageDialog.INFORMATION_MESSAGE );
+				return;
+			}
+			sequence = viewer.getSequence();
+			if ( null == sequence )
+			{
+				MessageDialog.showDialog( "Please select an image first.", MessageDialog.INFORMATION_MESSAGE );
+				return;
+			}
 		}
 
 		// clean of previous ROIs
@@ -75,6 +88,7 @@ public class TubeSkinnerGUI extends EzPlug implements EzStoppable, Block
 
 		// tracking.
 		final ROI2DEllipse ellipse;
+		final int currentTimePoint;
 		try
 		{
 			ellipse = ( ROI2DEllipse ) sequence.getROI2Ds().get( 0 );
@@ -84,8 +98,7 @@ public class TubeSkinnerGUI extends EzPlug implements EzStoppable, Block
 			MessageDialog.showDialog( "Plase adjust a ROI Ellipse on the first slice of the stack." );
 			return;
 		}
-
-		final int currentTimePoint = viewer.getPositionT();
+		currentTimePoint = ellipse.getT();
 
 		this.aortaTracker = new TubeSkinner(
 				sequence,
@@ -97,12 +110,14 @@ public class TubeSkinnerGUI extends EzPlug implements EzStoppable, Block
 				thetaStart.getValue( true ).doubleValue(),
 				thetaRange.getValue( true ).intValue() );
 		aortaTracker.setTimePoint( currentTimePoint );
-		outWrap.setValue( aortaTracker.run( isHeadLess() ) );
+		outWrap.setValue( aortaTracker.run( this.isHeadLess() ) );
+
 	}
 
 	@Override
 	protected void initialize()
 	{
+		addEzComponent( inImage );
 		addEzComponent( segmentationChannel );
 		addEzComponent( crownThickness );
 		addEzComponent( searchWindow );
@@ -120,6 +135,7 @@ public class TubeSkinnerGUI extends EzPlug implements EzStoppable, Block
 	@Override
 	public void declareInput( final VarList inputMap )
 	{
+		inputMap.add( "Input image", this.inImage.getVariable() );
 		inputMap.add( "Segmentation channel", this.segmentationChannel.getVariable() );
 		inputMap.add( "Crown thickness", this.crownThickness.getVariable() );
 		inputMap.add( "Tube center search window", this.searchWindow.getVariable() );
