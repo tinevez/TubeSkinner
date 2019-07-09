@@ -98,7 +98,15 @@ public class TubeSkinnerGUI extends EzPlug implements EzStoppable, Block
 			MessageDialog.showDialog( "Plase adjust a ROI Ellipse on the first slice of the stack." );
 			return;
 		}
-		currentTimePoint = ellipse.getT();
+
+		if ( ellipse.getT() == -1 ) // ROI is not bound a specific timepoint
+		{
+			currentTimePoint = 0; // Default is first time point
+		}
+		else // ROI is specifying a specific timepoint
+		{
+			currentTimePoint = ellipse.getT();
+		}
 
 		this.aortaTracker = new TubeSkinner(
 				sequence,
