@@ -24,3 +24,7 @@ bin/
 
 ## Additional icy plugins
 plugins/
+
+## Jar files
+*.jar
+
