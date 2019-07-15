@@ -98,7 +98,7 @@ public class TubeSkinnerGUI extends EzPlug implements EzStoppable, Block
 		}
 		catch ( final Exception e )
 		{
-			MessageDialog.showDialog( "Plase adjust a ROI Ellipse on the first slice of the stack." );
+			MessageDialog.showDialog( "Please adjust a ROI Ellipse on the first slice of the stack." );
 			return;
 		}
 
