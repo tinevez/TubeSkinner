@@ -75,6 +75,11 @@ public class TubeSkinner
 	private ROI3DArea[] skins;
 
 	/**
+	 * Unwrapped image will only be instantiated after the run
+	 */
+	private Sequence outWrap;
+
+	/**
 	 * Instantiates a TubeSkinner.
 	 *
 	 * @param sequence
@@ -130,12 +135,12 @@ public class TubeSkinner
 	 * 
 	 * @return
 	 */
-	public Sequence run( final boolean isHeadless )
+	public void run( final boolean isHeadless )
 	{
 		canceled = false;
 		final int nt = processAllTimePoints ? sequence.getSizeT() : 1;
 
-		final Sequence outWrap = new Sequence( "Unwrapped " + sequence.getName() );
+		outWrap = new Sequence( "Unwrapped " + sequence.getName() );
 		outWrap.setPixelSizeY( sequence.getPixelSizeZ() );
 		outWrap.setPixelSizeX( sequence.getPixelSizeZ() );
 		outWrap.setTimeInterval( sequence.getTimeInterval() );
@@ -173,8 +178,8 @@ public class TubeSkinner
 				skin.setName( "Skin_t=" + timepoint );
 				skin.setT( timepoint );
 
-				if ( canceled )
-					return outWrap;
+//				if ( canceled )
+//					return outWrap;
 				processTimePoint( timepoint, outWrap, skin );
 				skins[ timepoint ] = skin;
 			}
@@ -192,13 +197,16 @@ public class TubeSkinner
 			skins[ 0 ] = skin;
 		}
 
-		return outWrap;
-
 	}
 
 	public ROI3DArea[] getSkinROIs()
 	{
 		return skins;
+	}
+
+	public Sequence getOutWrap()
+	{
+		return outWrap;
 	}
 
 	private void processTimePoint( final int timepoint, final Sequence outWrap, final ROI3DArea skin )

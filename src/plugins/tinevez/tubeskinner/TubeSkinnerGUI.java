@@ -121,7 +121,8 @@ public class TubeSkinnerGUI extends EzPlug implements EzStoppable, Block
 				thetaStart.getValue( true ).doubleValue(),
 				thetaRange.getValue( true ).intValue() );
 		aortaTracker.setTimePoint( currentTimePoint );
-		outWrap.setValue( aortaTracker.run( this.isHeadLess() ) );
+		aortaTracker.run( this.isHeadLess() );
+		outWrap.setValue( aortaTracker.getOutWrap() );
 		skins.setValue( aortaTracker.getSkinROIs() );
 
 	}
