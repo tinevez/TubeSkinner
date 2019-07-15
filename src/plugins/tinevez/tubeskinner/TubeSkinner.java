@@ -66,7 +66,13 @@ public class TubeSkinner
 	 */
 	private final double sampleAngle = 1.;
 
-	private boolean canceled = false;;
+	private boolean canceled = false;
+
+	/**
+	 * ROIs associated with the aorta contour Will be instantiated only after
+	 * the run
+	 */
+	private ROI3DArea[] skins;
 
 	/**
 	 * Instantiates a TubeSkinner.
@@ -160,23 +166,42 @@ public class TubeSkinner
 
 		if ( processAllTimePoints )
 		{
+			skins = new ROI3DArea[ nt ];
 			for ( int timepoint = 0; timepoint < nt; timepoint++ )
 			{
+				final ROI3DArea skin = new ROI3DArea();
+				skin.setName( "Skin_t=" + timepoint );
+				skin.setT( timepoint );
+
 				if ( canceled )
 					return outWrap;
-				processTimePoint( timepoint, outWrap );
+				processTimePoint( timepoint, outWrap, skin );
+				skins[ timepoint ] = skin;
 			}
 		}
 		else
 		{
-			processTimePoint( targetTimePoint, outWrap );
+			skins = new ROI3DArea[ 1 ];
+
+			final ROI3DArea skin = new ROI3DArea();
+			skin.setName( "Skin" );
+			skin.setT( targetTimePoint );
+
+			processTimePoint( targetTimePoint, outWrap, skin );
+
+			skins[ 0 ] = skin;
 		}
 
 		return outWrap;
 
 	}
 
-	private void processTimePoint( final int timepoint, final Sequence outWrap )
+	public ROI3DArea[] getSkinROIs()
+	{
+		return skins;
+	}
+
+	private void processTimePoint( final int timepoint, final Sequence outWrap, final ROI3DArea skin )
 	{
 		final double pixelSize = 1.;
 
@@ -195,10 +220,6 @@ public class TubeSkinner
 		this.nAngles = ( int ) ( thetaRange / sampleAngle );
 
 		unWrapImage.beginUpdate();
-
-		final ROI3DArea skin = new ROI3DArea();
-		skin.setName( "Skin_t=" + timepoint );
-		skin.setT( timepoint );
 
 		final ROI3DArea tube = new ROI3DArea();
 		tube.setName( "RoughTube_t=" + timepoint );

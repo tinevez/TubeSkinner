@@ -12,6 +12,7 @@ import plugins.adufour.ezplug.EzVarBoolean;
 import plugins.adufour.ezplug.EzVarDouble;
 import plugins.adufour.ezplug.EzVarInteger;
 import plugins.adufour.ezplug.EzVarSequence;
+import plugins.adufour.vars.lang.VarROIArray;
 import plugins.adufour.vars.lang.VarSequence;
 import plugins.kernel.roi.roi2d.ROI2DEllipse;
 
@@ -36,9 +37,11 @@ public class TubeSkinnerGUI extends EzPlug implements EzStoppable, Block
 
 	private TubeSkinner aortaTracker;
 
-	private final VarSequence outWrap = new VarSequence( "Unwrapped image", ( Sequence ) null );
-
 	private final EzVarSequence inImage = new EzVarSequence( "Input image" );
+
+	private final VarSequence outWrap = new VarSequence( "Unwrapped image", ( Sequence ) null ); // output
+
+	private final VarROIArray skins = new VarROIArray( "Skins" ); // output
 
 	@Override
 	public void clean()
@@ -119,6 +122,7 @@ public class TubeSkinnerGUI extends EzPlug implements EzStoppable, Block
 				thetaRange.getValue( true ).intValue() );
 		aortaTracker.setTimePoint( currentTimePoint );
 		outWrap.setValue( aortaTracker.run( this.isHeadLess() ) );
+		skins.setValue( aortaTracker.getSkinROIs() );
 
 	}
 
@@ -156,6 +160,7 @@ public class TubeSkinnerGUI extends EzPlug implements EzStoppable, Block
 	public void declareOutput( final VarList outputMap )
 	{
 		outputMap.add( "Unwrapped image", this.outWrap );
+		outputMap.add( "Skin", this.skins );
 	}
 
 }
