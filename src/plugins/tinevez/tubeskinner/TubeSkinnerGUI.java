@@ -19,7 +19,7 @@ import plugins.kernel.roi.roi2d.ROI2DEllipse;
 public class TubeSkinnerGUI extends EzPlug implements EzStoppable, Block
 {
 
-	private static final String PLUGIN_VERSION = "1.1.1";
+	private static final String PLUGIN_VERSION = "1.1.2";
 
 	private static final String PLUGIN_NAME = "TubeSkinner v" + PLUGIN_VERSION;
 
@@ -119,9 +119,10 @@ public class TubeSkinnerGUI extends EzPlug implements EzStoppable, Block
 				searchWindow.getValue( true ).intValue(),
 				allTimePoints.getValue( true ),
 				thetaStart.getValue( true ).doubleValue(),
-				thetaRange.getValue( true ).intValue() );
+				thetaRange.getValue( true ).intValue(),
+				this.isHeadLess() );
 		aortaTracker.setTimePoint( currentTimePoint );
-		aortaTracker.run( this.isHeadLess() );
+		aortaTracker.run();
 		outWrap.setValue( aortaTracker.getOutWrap() );
 		skins.setValue( aortaTracker.getSkinROIs() );
 

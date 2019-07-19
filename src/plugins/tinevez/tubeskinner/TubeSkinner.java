@@ -80,6 +80,11 @@ public class TubeSkinner
 	private Sequence outWrap;
 
 	/**
+	 * Specify if the class in called by a protocol
+	 */
+	private final boolean isHeadless;
+
+	/**
 	 * Instantiates a TubeSkinner.
 	 *
 	 * @param sequence
@@ -114,8 +119,12 @@ public class TubeSkinner
 	 *            what angular arc (in degrees) should be evaluated to fit the
 	 *            tube. The evaluation begins at the angle provided at
 	 *            thetaStart and the user to target a specific part of the tube.
+	 * @param isHeadless
+	 *            is the TubeSkinner object created in a protocol
 	 */
-	public TubeSkinner( final Sequence sequence, final ROI2DEllipse ellipse, final int segmentationChannel, final double thickness, final int window, final boolean processAllTimePoints, final double thetaStart, final int thetaRange )
+	public TubeSkinner( final Sequence sequence, final ROI2DEllipse ellipse, final int segmentationChannel,
+			final double thickness, final int window, final boolean processAllTimePoints, final double thetaStart,
+			final int thetaRange, final boolean isHeadless )
 	{
 		this.sequence = sequence;
 		this.ellipse = ellipse;
@@ -125,6 +134,7 @@ public class TubeSkinner
 		this.processAllTimePoints = processAllTimePoints;
 		this.thetaStart = thetaStart;
 		this.thetaRange = thetaRange;
+		this.isHeadless = isHeadless;
 	}
 
 	/**
@@ -135,7 +145,7 @@ public class TubeSkinner
 	 * 
 	 * @return
 	 */
-	public void run( final boolean isHeadless )
+	public void run()
 	{
 		canceled = false;
 		final int nt = processAllTimePoints ? sequence.getSizeT() : 1;
@@ -438,10 +448,13 @@ public class TubeSkinner
 		unWrapImage.endUpdate();
 
 		skin.setColor( Color.CYAN );
-		sequence.addROI( skin );
-
 		tube.setColor( Color.ORANGE );
-		sequence.addROI( tube );
+
+		if ( !isHeadless )
+		{
+			sequence.addROI( skin );
+			sequence.addROI( tube );
+		}
 
 	}
 
