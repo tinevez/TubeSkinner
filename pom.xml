@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+<!-- 
+	<parent>
+		<groupId>org.scijava</groupId>
+		<artifactId>pom-scijava</artifactId>
+		<version>29.0.0-beta-3</version>
+		<relativePath />
+	</parent>
+ -->
+
+	<groupId>org.bioimageanalysis.icy</groupId>
+    <artifactId>tube-skinner</artifactId>
+    <version>1.2.0-SNASPSHOT</version>
+
+	<name>Tube-Skinner</name>
+    <description>An Icy plugin to unwrap 3D fluorescence images of tube-like structures.</description>
+	<url>http://icy.bioimageanalysis.org/plugin/tubeskinner/</url>
+	<inceptionYear>2017</inceptionYear>
+	<organization>
+		<name>IAH / Institut Pasteur</name>
+		<url>https://research.pasteur.fr/en/team/image-analysis-hub/</url>
+	</organization>
+<!-- 
+
+    <properties>
+        <outputJar>${project.build.outputDirectory}/../plugin</outputJar>
+    </properties>
+
+    <build>
+		<finalName>${project.artifactId}</finalName>
+		
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.1.2</version>
+                <configuration>
+                    <outputDirectory>${outputJar}</outputDirectory>
+                    <archive>
+                        <manifest>
+                            <addClasspath>true</addClasspath>
+                            <mainClass></mainClass>
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
+        </plugins>
+        
+    </build>
+ -->
+
+    <dependencies>
+        <dependency>
+            <groupId>org.bioimageanalysis.icy</groupId>
+            <artifactId>icy-kernel</artifactId>
+            <version>2.1.0</version>
+        </dependency>
+    </dependencies>
+
+    <repositories>
+		<repository>
+            <id>icy-release</id>
+            <url>https://nexus.pasteur.fr/repository/icy-release/</url>
+        </repository>
+<!-- 
+        <repository>
+            <id>icy-prod</id>
+            <url>https://icy-nexus.pasteur.fr/repository/Icy/</url>
+        </repository>
+        <repository>
+            <id>jai-core-repo</id>
+            <url>https://packages.atlassian.com/maven-3rdparty/</url>
+        </repository>
+        <repository>
+            <id>jai-codec-repo</id>
+            <url>http://maven.geomajas.org/</url>
+        </repository>
+ -->
+    </repositories>
+<!-- 
+
+    <distributionManagement>
+        <snapshotRepository>
+            <id>icy-dev</id>
+            <name>icy-core-dev</name>
+            <url>https://icy-nexus-dev.pasteur.cloud/repository/icy-core/</url>
+        </snapshotRepository>
+        <repository>
+            <id>icy-prod</id>
+            <name>icy-core-prod</name>
+            <url>https://icy-nexus.pasteur.fr/repository/icy-core/</url>
+        </repository>
+    </distributionManagement>
+    
+ -->
+</project>    
