@@ -3,14 +3,12 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-<!-- 
 	<parent>
 		<groupId>org.scijava</groupId>
 		<artifactId>pom-scijava</artifactId>
 		<version>29.0.0-beta-3</version>
 		<relativePath />
 	</parent>
- -->
 
 	<groupId>org.bioimageanalysis.icy</groupId>
     <artifactId>tube-skinner</artifactId>
@@ -24,7 +22,6 @@
 		<name>IAH / Institut Pasteur</name>
 		<url>https://research.pasteur.fr/en/team/image-analysis-hub/</url>
 	</organization>
-<!-- 
 
     <properties>
         <outputJar>${project.build.outputDirectory}/../plugin</outputJar>
@@ -37,7 +34,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
-                <version>3.1.2</version>
                 <configuration>
                     <outputDirectory>${outputJar}</outputDirectory>
                     <archive>
@@ -51,7 +47,6 @@
         </plugins>
         
     </build>
- -->
 
     <dependencies>
         <dependency>
@@ -66,7 +61,6 @@
             <id>icy-release</id>
             <url>https://nexus.pasteur.fr/repository/icy-release/</url>
         </repository>
-<!-- 
         <repository>
             <id>icy-prod</id>
             <url>https://icy-nexus.pasteur.fr/repository/Icy/</url>
@@ -79,9 +73,7 @@
             <id>jai-codec-repo</id>
             <url>http://maven.geomajas.org/</url>
         </repository>
- -->
     </repositories>
-<!-- 
 
     <distributionManagement>
         <snapshotRepository>
@@ -96,5 +88,4 @@
         </repository>
     </distributionManagement>
     
- -->
 </project>    
