@@ -3,13 +3,6 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-	<parent>
-		<groupId>org.scijava</groupId>
-		<artifactId>pom-scijava</artifactId>
-		<version>29.0.0-beta-3</version>
-		<relativePath />
-	</parent>
-
 	<groupId>org.bioimageanalysis.icy</groupId>
     <artifactId>tube-skinner</artifactId>
     <version>1.2.0-SNASPSHOT</version>
