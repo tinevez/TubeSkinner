@@ -49,11 +49,25 @@
     </build>
 
     <dependencies>
+    
         <dependency>
             <groupId>org.bioimageanalysis.icy</groupId>
             <artifactId>icy-kernel</artifactId>
             <version>2.1.0</version>
         </dependency>
+
+		<dependency>
+			<groupId>org.bioimageanalysis.icy</groupId>
+			<artifactId>icy-ezplug</artifactId>
+			<version>1.0.0</version>
+		</dependency>
+	
+		<dependency>
+			<groupId>org.bioimageanalysis.icy</groupId>
+			<artifactId>icy-blocks</artifactId>
+			<version>1.0.0</version>
+		</dependency>
+		
     </dependencies>
 
     <repositories>
